@@ -1,3 +1,4 @@
+import os
 import torch
 import torch.nn as nn
 import itertools
@@ -179,6 +180,15 @@ class CycleGANModel(nn.Module):
         self.opt = opt
         self.device = torch.device('cuda:0' if (torch.cuda.is_available() and opt.gpu_ids != '-1') else 'cpu')
         self.isTrain = opt.phase == 'train'
+
+        print("=========================================")
+        print(f"Device configuration: {self.device}")
+        if self.device.type == 'cuda':
+            print(f"GPU Name: {torch.cuda.get_device_name(0)}")
+            print(f"CUDA Available: {torch.cuda.is_available()}")
+        else:
+            print(f"WARNING: GPU is not used. CUDA Available: {torch.cuda.is_available()}, opt.gpu_ids: {opt.gpu_ids}")
+        print("=========================================")
 
         # Generators
         self.netG_A = ResNetGenerator(opt.input_nc, opt.output_nc, opt.ngf, n_blocks=9 if opt.net_g == 'resnet_9blocks' else 6).to(self.device)
