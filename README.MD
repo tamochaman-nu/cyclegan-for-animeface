@@ -42,6 +42,7 @@ python3 prepare_dataset.py --dir_A /path/to/domain_A_images --dir_B /path/to/dom
 *注意：ドメインAとドメインBでファイルの収集数が異なる場合、スクリプトは自動的に**少ない方の枚数に合わせて**両方のドメインのファイルリストをランダムに均等化（切り詰め）した上で学習/テスト用の分割を行います。*
 
 このスクリプトを実行すると、指定した `--output_root` 配下にシンボリックリンクが張られた `trainA`, `trainB`, `testA`, `testB` ディレクトリが生成され、すぐにCycleGANの学習データとして使用できる状態になります。
+*※Windows環境などで権限が不足しておりシンボリックリンクの作成に失敗した場合は、自動的に実ファイルのコピーが行われます。*
 
 ## 実行方法
 
@@ -58,11 +59,20 @@ docker compose run --rm train --dataroot ./datasets/<データセット名> --na
 - `--dataroot`: データセットが格納されているディレクトリのパスを指定します。
 - `--name`: 学習するモデルの名前（プロジェクトにおける実験名）を指定します。学習経過やチェックポイントはこの名前で `./checkpoints/<モデル名>` セクション等に保存されます。
 
+**学習状況のモニタリング (TensorBoard)**:
+学習中の損失(Loss)などの推移はTensorBoardで確認できます。学習コマンドとは**別のターミナル**を開き、以下のコマンドでTensorBoardコンテナをバックグラウンド起動してください。
+```bash
+docker compose up -d tensorboard
+```
+起動後、ブラウザから `http://localhost:16006` にアクセスして学習の経過を確認できます。確認が終わったら `docker compose stop tensorboard` で停止できます。
+
 **CPUを利用して学習する場合（GPU非搭載環境）**:
 コマンドの引数に `--gpu_ids -1` を追加して実行します。
 ```bash
 docker compose run --rm train --dataroot ./datasets/<データセット名> --name <モデル名> --gpu_ids -1
 ```
+
+*※ 学習・推論を開始する際、GPU・CPUのどちらで実行されているか（およびGPUのデバイス名）が自動的にコンソールへログ出力されるため、正しく設定できているか確認できます。*
 
 ### 推論 / テスト (Inference)
 

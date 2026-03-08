@@ -178,7 +178,24 @@ class CycleGANModel(nn.Module):
     def __init__(self, opt):
         super(CycleGANModel, self).__init__()
         self.opt = opt
-        self.device = torch.device('cuda:0' if (torch.cuda.is_available() and opt.gpu_ids != '-1') else 'cpu')
+        
+        # GPU設定の解析とデバイスの決定
+        gpu_ids = opt.gpu_ids.split(',') if hasattr(opt, 'gpu_ids') and opt.gpu_ids else []
+        if len(gpu_ids) > 0 and gpu_ids[0] != '-1' and torch.cuda.is_available():
+            gpu_id = int(gpu_ids[0])
+            self.device = torch.device(f'cuda:{gpu_id}')
+            print('========== GPU情報 ==========')
+            print('[INFO] GPUを使用して学習・推論を行います')
+            print(f'[INFO] デバイス: cuda:{gpu_id} ({torch.cuda.get_device_name(gpu_id)})')
+            print('=============================')
+        else:
+            self.device = torch.device('cpu')
+            print('========== GPU情報 ==========')
+            print('[WARN] GPUが使用されていません。CPUで実行します。')
+            if not torch.cuda.is_available():
+                print('[WARN] (原因: torch.cuda.is_available() が False です。PyTorchがGPUを認識していません)')
+            print('=============================')
+            
         self.isTrain = opt.phase == 'train'
 
         print("=========================================")

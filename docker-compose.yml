@@ -35,7 +35,7 @@ services:
               capabilities: [gpu]
 
   tensorboard:
-    image: python:3.11-slim
+    image: pytorch/pytorch:latest
     volumes:
       - .:/workspace
     working_dir: /workspace
