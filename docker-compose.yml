@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  train:
+    build:
+      context: .
+    volumes:
+      - .:/workspace
+      - /mnt/NAS:/mnt/NAS
+    working_dir: /workspace
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    # docker compose run --rm train [args] の args（例: --dataroot ... --name ...）を
+    # コマンドライン引数として渡し、python train.py を実行するエントリポイント
+    entrypoint: ["sh", "-c", "python train.py \"$$@\"", "--"]
+
+  inferance:
+    build:
+      context: .
+    volumes:
+      - .:/workspace
+      - /mnt/NAS:/mnt/NAS
+    working_dir: /workspace
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  tensorboard:
+    image: python:3.11-slim
+    volumes:
+      - .:/workspace
+    working_dir: /workspace
+    command: pip install tensorboard && tensorboard --logdir runs --host 0.0.0.0
+    ports:
+      - "16006:16006"
+
+    # docker compose run --rm inferance [args] の args を
+    # コマンドライン引数として渡し、python test.py を実行するエントリポイント
+    entrypoint: ["sh", "-c", "python test.py \"$$@\"", "--"]
