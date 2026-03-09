@@ -35,7 +35,7 @@ def main():
             batch_size=opt.batch_size,
             shuffle=False,
             num_workers=int(opt.num_threads),
-            drop_last=True
+            drop_last=False
         )
         val_dataset_size = len(val_dataset)
         print(f'The number of validation images = {val_dataset_size}')
