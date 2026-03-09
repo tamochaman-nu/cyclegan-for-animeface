@@ -51,7 +51,7 @@ def get_train_options():
 
     # Output tracking
     parser.add_argument('--tensorboard_dir', type=str, default='runs', help='directory to save tensorboard logs')
-    parser.add_argument('--val_freq', type=int, default=5, help='frequency of calculating validation loss (in epochs)')
+    parser.add_argument('--val_freq', type=int, default=1, help='frequency of calculating validation loss (in epochs)')
     parser.add_argument('--print_freq', type=int, default=100, help='frequency of showing training results on console')
     parser.add_argument('--save_latest_freq', type=int, default=5000, help='frequency of saving the latest results')
     parser.add_argument('--save_epoch_freq', type=int, default=5, help='frequency of saving checkpoints at the end of epochs')
