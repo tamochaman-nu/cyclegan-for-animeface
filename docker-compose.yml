@@ -34,6 +34,9 @@ services:
               count: all
               capabilities: [gpu]
 
+    # docker compose run --rm inferance [args] の args を
+    # コマンドライン引数として渡し、python test.py を実行するエントリポイント
+    entrypoint: ["sh", "-c", "python test.py \"$$@\"", "--"]
   tensorboard:
     image: python:3.11-slim
     volumes:
