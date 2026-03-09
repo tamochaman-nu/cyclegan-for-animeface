@@ -66,6 +66,9 @@ def main():
         epoch_start_time = time.time()
         iter_data_time = time.time()
         epoch_iter = 0
+        
+        epoch_losses_sum = {}
+        num_train_batches = 0
 
         for i, data in enumerate(dataloader):
             iter_start_time = time.time()
@@ -110,30 +113,34 @@ def main():
             
             model.optimizer_D.step()
 
+            # Accumulate losses per epoch
+            losses = {
+                'G_A': model.loss_G_A.item(),
+                'G_B': model.loss_G_B.item(),
+                'Cyc_A': model.loss_cycle_A.item(),
+                'Cyc_B': model.loss_cycle_B.item(),
+                'D_A': model.loss_D_A.item(),
+                'D_B': model.loss_D_B.item(),
+            }
+            if opt.lambda_identity > 0.0:
+                losses['idt_A'] = model.loss_idt_A.item()
+                losses['idt_B'] = model.loss_idt_B.item()
+            if opt.lambda_perceptual > 0.0:
+                losses['VGG'] = model.loss_perceptual.item()
+            if opt.lambda_arcface > 0.0:
+                losses['Arc'] = model.loss_arcface.item()
+                
+            for k, v in losses.items():
+                epoch_losses_sum[k] = epoch_losses_sum.get(k, 0.0) + v
+            num_train_batches += 1
+
             # Print losses
             if total_iters % opt.print_freq == 0:
-                losses = {
-                    'G_A': model.loss_G_A.item(),
-                    'G_B': model.loss_G_B.item(),
-                    'Cyc_A': model.loss_cycle_A.item(),
-                    'Cyc_B': model.loss_cycle_B.item(),
-                    'D_A': model.loss_D_A.item(),
-                    'D_B': model.loss_D_B.item(),
-                }
-                if opt.lambda_identity > 0.0:
-                    losses['idt_A'] = model.loss_idt_A.item()
-                    losses['idt_B'] = model.loss_idt_B.item()
-                if opt.lambda_perceptual > 0.0:
-                    losses['VGG'] = model.loss_perceptual.item()
-                if opt.lambda_arcface > 0.0:
-                    losses['Arc'] = model.loss_arcface.item()
-                
                 t_comp = (time.time() - iter_start_time) / opt.batch_size
                 
                 message = f'(epoch: {epoch}, iters: {epoch_iter}, time: {t_comp:.3f}, data: {t_data:.3f}) '
                 for k, v in losses.items():
                     message += f'{k}: {v:.3f} '
-                    writer_train.add_scalar(f'Loss/{k}', v, total_iters)
                 print(message)
 
             if total_iters % opt.save_latest_freq == 0:
@@ -141,6 +148,12 @@ def main():
                 model.save_networks('latest')
 
             iter_data_time = time.time()
+
+        # Log epoch average training losses to TensorBoard
+        if num_train_batches > 0:
+            for k, v in epoch_losses_sum.items():
+                avg_v = v / num_train_batches
+                writer_train.add_scalar(f'Loss/{k}', avg_v, epoch)
 
         if epoch % opt.save_epoch_freq == 0:
             print(f'saving the model at the end of epoch {epoch}, iters {total_iters}')
