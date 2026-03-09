@@ -44,6 +44,10 @@ python3 prepare_dataset.py --dir_A /path/to/domain_A_images --dir_B /path/to/dom
 このスクリプトを実行すると、指定した `--output_root` 配下にシンボリックリンクが張られた `trainA`, `trainB`, `testA`, `testB` ディレクトリが生成され、すぐにCycleGANの学習データとして使用できる状態になります。
 *※Windows環境などで権限が不足しておりシンボリックリンクの作成に失敗した場合は、自動的に実ファイルのコピーが行われます。*
 
+> [!WARNING]
+> WindowsホストからDockerを利用して学習を行う場合、`prepare_dataset.py` で作成されたWindows絶対パス表記のシンボリックリンクがLinuxコンテナ内で解決できず `FileNotFoundError` になる問題があります。  
+> WindowsでDockerを利用される方は、シンボリックリンク機能を使用せず実ファイルのコピーを行う **`prepare_dataset_windows.py`** を代わりに実行してデータセットを作成してください（引数等の使い方は同じです）。
+
 ## 実行方法
 
 本プロジェクトでは `docker-compose.yml` に学習用の `train` サービスと、推論用の `inferance` サービスが定義されています。引数はコマンドライン引数としてコンテナ内のPythonスクリプト( `train.py` / `test.py` ) に渡されます。
