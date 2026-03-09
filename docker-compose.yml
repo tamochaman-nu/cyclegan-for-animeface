@@ -35,14 +35,10 @@ services:
               capabilities: [gpu]
 
   tensorboard:
-    image: pytorch/pytorch:latest
+    image: python:3.11-slim
     volumes:
       - .:/workspace
     working_dir: /workspace
-    command: pip install tensorboard && tensorboard --logdir runs --host 0.0.0.0
+    command: /bin/sh -c "pip install tensorboard && tensorboard --logdir runs --host 0.0.0.0"
     ports:
-      - "16006:16006"
-
-    # docker compose run --rm inferance [args] の args を
-    # コマンドライン引数として渡し、python test.py を実行するエントリポイント
-    entrypoint: ["sh", "-c", "python test.py \"$$@\"", "--"]
+      - "16006:6006"
