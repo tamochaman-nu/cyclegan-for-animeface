@@ -39,3 +39,4 @@ test/.coverage
 test/data/legacy_serialized.pt
 *~
 runs/*
+*.db
