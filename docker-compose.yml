@@ -45,3 +45,28 @@ services:
     command: /bin/sh -c "pip install tensorboard && tensorboard --logdir runs --host 0.0.0.0"
     ports:
       - "16006:6006"
+
+  optuna_train:
+    build:
+      context: .
+    volumes:
+      - .:/workspace
+      - /mnt/NAS:/mnt/NAS
+    working_dir: /workspace
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    entrypoint: ["sh", "-c", "python optuna_train.py \"$$@\"", "--"]
+
+  optuna_dashboard:
+    image: python:3.11-slim
+    volumes:
+      - .:/workspace
+    working_dir: /workspace
+    command: /bin/sh -c "pip install optuna-dashboard && optuna-dashboard sqlite:///optuna.db --host 0.0.0.0 --port 8080"
+    ports:
+      - "8080:8080"

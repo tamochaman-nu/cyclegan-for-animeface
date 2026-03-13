@@ -97,3 +97,29 @@ docker compose run --rm inferance --dataroot ./datasets/<データセット名> 
 
 画像サイズ、バッチサイズ、学習率といったより詳細な学習および推論時の設定については、プロジェクト内の `options.py` ファイルをご確認ください。
 同ファイル内に `argparse` で設定可能な各パラメーターとそのデフォルト値が記載されています（例: リサイズ設定 `--preprocess` など）。
+
+### ハイパーパラメータチューニング (Optuna)
+
+Optunaを利用して学習率や損失の重み（Cycle loss, Identity loss, Perceptual loss）、残差ブロック数などのハイパーパラメータを自動探索することができます。
+
+1. **最適化の実行**:
+   以下のコマンドでOptunaの探索を実行します。
+   ```bash
+   docker compose run --rm optuna_train --dataroot ./datasets/<データセット名> --name <モデル名> --optuna_trials 50 --n_epochs_optuna 10
+   ```
+   - `--optuna_trials`: 実行するトライアルの回数（デフォルト: 50）
+   - `--n_epochs_optuna`: 1つのトライアルあたりのエポック数（デフォルト: 10）
+
+2. **探索結果の確認 (Optuna Dashboard)**:
+   最適化の進捗や各ハイパーパラメータの重要度などは、ダッシュボードから確認できます。
+   ```bash
+   docker compose up -d optuna_dashboard
+   ```
+   起動後、ブラウザから `http://localhost:8080` にアクセスしてください。
+
+3. **各トライアルの損失推移の確認 (TensorBoard)**:
+   各トライアルごとの損失推移はTensorBoardで確認できます。各トライアルは `<モデル名>_trial_0` のような名前で記録されます。
+   ```bash
+   docker compose up -d tensorboard
+   ```
+   ブラウザから `http://localhost:16006` にアクセスしてください。

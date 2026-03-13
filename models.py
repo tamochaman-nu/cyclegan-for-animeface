@@ -208,8 +208,9 @@ class CycleGANModel(nn.Module):
         print("=========================================")
 
         # Generators
-        self.netG_A = ResNetGenerator(opt.input_nc, opt.output_nc, opt.ngf, n_blocks=9 if opt.net_g == 'resnet_9blocks' else 6).to(self.device)
-        self.netG_B = ResNetGenerator(opt.output_nc, opt.input_nc, opt.ngf, n_blocks=9 if opt.net_g == 'resnet_9blocks' else 6).to(self.device)
+        n_blocks = opt.n_blocks_g if hasattr(opt, 'n_blocks_g') and opt.n_blocks_g > 0 else (9 if opt.net_g == 'resnet_9blocks' else 6)
+        self.netG_A = ResNetGenerator(opt.input_nc, opt.output_nc, opt.ngf, n_blocks=n_blocks).to(self.device)
+        self.netG_B = ResNetGenerator(opt.output_nc, opt.input_nc, opt.ngf, n_blocks=n_blocks).to(self.device)
 
         # Discriminators & Losses
         if self.isTrain:
@@ -289,17 +290,21 @@ class CycleGANModel(nn.Module):
         # Backward cycle loss || G_A(G_B(B)) - B||
         self.loss_cycle_B = self.criterionCycle(self.rec_B, self.real_B) * lambda_B
         
-        # Extra Losses primarily acting on Real -> Anime -> Reconstr Real (real_A and rec_A)
-        self.loss_perceptual = 0
+        # Extra Losses separated for A and B
+        self.loss_perceptual_A = 0
+        self.loss_perceptual_B = 0
         if self.opt.lambda_perceptual > 0.0:
-            self.loss_perceptual = self.criterionPerceptual(self.rec_A, self.real_A) * self.opt.lambda_perceptual
+            self.loss_perceptual_A = self.criterionPerceptual(self.rec_A, self.real_A) * self.opt.lambda_perceptual
+            self.loss_perceptual_B = self.criterionPerceptual(self.rec_B, self.real_B) * self.opt.lambda_perceptual
 
-        self.loss_arcface = 0
+        self.loss_arcface_A = 0
+        self.loss_arcface_B = 0
         if self.opt.lambda_arcface > 0.0:
-            self.loss_arcface = self.criterionArcFace(self.rec_A, self.real_A) * self.opt.lambda_arcface
+            self.loss_arcface_A = self.criterionArcFace(self.rec_A, self.real_A) * self.opt.lambda_arcface
+            self.loss_arcface_B = self.criterionArcFace(self.rec_B, self.real_B) * self.opt.lambda_arcface
 
         # combined loss and calculate gradients
-        self.loss_G = self.loss_G_A + self.loss_G_B + self.loss_cycle_A + self.loss_cycle_B + self.loss_idt_A + self.loss_idt_B + self.loss_perceptual + self.loss_arcface
+        self.loss_G = self.loss_G_A + self.loss_G_B + self.loss_cycle_A + self.loss_cycle_B + self.loss_idt_A + self.loss_idt_B + self.loss_perceptual_A + self.loss_perceptual_B + self.loss_arcface_A + self.loss_arcface_B
         self.loss_G.backward()
 
     def compute_val_losses(self):
@@ -331,14 +336,18 @@ class CycleGANModel(nn.Module):
             # Backward cycle loss || G_A(G_B(B)) - B||
             loss_cycle_B = self.criterionCycle(self.rec_B, self.real_B) * lambda_B
             
-            # Extra Losses
-            loss_perceptual = torch.tensor(0.0).to(self.device)
+            # Extra Losses separated for A and B
+            loss_perceptual_A = torch.tensor(0.0).to(self.device)
+            loss_perceptual_B = torch.tensor(0.0).to(self.device)
             if self.opt.lambda_perceptual > 0.0:
-                loss_perceptual = self.criterionPerceptual(self.rec_A, self.real_A) * self.opt.lambda_perceptual
+                loss_perceptual_A = self.criterionPerceptual(self.rec_A, self.real_A) * self.opt.lambda_perceptual
+                loss_perceptual_B = self.criterionPerceptual(self.rec_B, self.real_B) * self.opt.lambda_perceptual
 
-            loss_arcface = torch.tensor(0.0).to(self.device)
+            loss_arcface_A = torch.tensor(0.0).to(self.device)
+            loss_arcface_B = torch.tensor(0.0).to(self.device)
             if self.opt.lambda_arcface > 0.0:
-                loss_arcface = self.criterionArcFace(self.rec_A, self.real_A) * self.opt.lambda_arcface
+                loss_arcface_A = self.criterionArcFace(self.rec_A, self.real_A) * self.opt.lambda_arcface
+                loss_arcface_B = self.criterionArcFace(self.rec_B, self.real_B) * self.opt.lambda_arcface
 
             # Discriminator Losses
             pred_real_A = self.netD_B(self.real_A)
@@ -365,9 +374,11 @@ class CycleGANModel(nn.Module):
                 losses['idt_A'] = loss_idt_A.item()
                 losses['idt_B'] = loss_idt_B.item()
             if self.opt.lambda_perceptual > 0.0:
-                losses['VGG'] = loss_perceptual.item()
+                losses['VGG_A'] = loss_perceptual_A.item()
+                losses['VGG_B'] = loss_perceptual_B.item()
             if self.opt.lambda_arcface > 0.0:
-                losses['Arc'] = loss_arcface.item()
+                losses['Arc_A'] = loss_arcface_A.item()
+                losses['Arc_B'] = loss_arcface_B.item()
                 
             return losses
 

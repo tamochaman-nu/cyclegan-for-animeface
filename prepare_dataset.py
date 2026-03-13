@@ -41,18 +41,30 @@ def extract_parquet_images(parquet_paths):
         
         try:
             df = pd.read_parquet(p_path)
+            print(f"[{os.path.basename(p_path)}] Columns found in Parquet: {df.columns.tolist()}")
+            img_col = None
             if 'image' in df.columns:
-                print(f"Processing {os.path.basename(p_path)} ({len(df)} rows)")
+                img_col = 'image'
+            elif 'image.bytes' in df.columns:
+                img_col = 'image.bytes'
+
+            if img_col:
+                print(f"Processing {os.path.basename(p_path)} ({len(df)} rows) using column '{img_col}'")
                 # Use tqdm to show progress bar
                 for idx, row in tqdm(df.iterrows(), total=len(df), desc=f"Extracting {os.path.basename(p_path)}"):
-                    img_data = row['image']
+                    img_data = row[img_col]
+                    
+                    img_bytes = None
+                    ext = '.jpg'
+                    
                     if isinstance(img_data, dict) and 'bytes' in img_data:
                         img_bytes = img_data['bytes']
-                        
-                        ext = '.jpg'
                         if 'path' in img_data and img_data['path']:
                             ext = Path(img_data['path']).suffix or '.jpg'
-                            
+                    elif isinstance(img_data, bytes):
+                        img_bytes = img_data
+                        
+                    if img_bytes is not None:
                         filename = f"{Path(p_path).stem}_{idx}{ext}"
                         out_path = os.path.join(raw_dir, filename)
                         
@@ -65,7 +77,7 @@ def extract_parquet_images(parquet_paths):
                         except Exception as e:
                             pass # Skip rows that aren't valid images silently based on progress bar
             else:
-                print(f"Warning: No 'image' column found in {p_path}.")
+                print(f"Warning: Neither 'image' nor 'image.bytes' column found in {p_path}.")
         except Exception as e:
             print(f"Failed to read Parquet file {p_path}: {e}")
             

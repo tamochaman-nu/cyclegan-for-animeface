@@ -39,7 +39,7 @@ def get_train_options():
     parser.add_argument('--lambda_A', type=float, default=10.0, help='weight for cycle loss (A -> B -> A)')
     parser.add_argument('--lambda_B', type=float, default=10.0, help='weight for cycle loss (B -> A -> B)')
     parser.add_argument('--lambda_identity', type=float, default=0.5, help='use identity mapping. Setting lambda_identity other than 0 has an effect of scaling the weight of the identity mapping loss. For example, if the weight of the identity loss should be 10 times smaller than the weight of the reconstruction loss, please set lambda_identity = 0.1')
-    parser.add_argument('--lambda_perceptual', type=float, default=0.0, help='weight for VGG-based perceptual loss on A->B->A cycle (e.g. 0.1 to activate)')
+    parser.add_argument('--lambda_perceptual', type=float, default=0.5, help='weight for VGG-based perceptual loss on A->B->A cycle (e.g. 0.1 to activate)')
     parser.add_argument('--lambda_arcface', type=float, default=0.0, help='weight for InceptionResnetV1-based facial identity loss on A->B->A cycle (e.g. 0.1 to activate)')
     
     parser.add_argument('--lr', type=float, default=0.0002, help='initial learning rate for adam')
@@ -57,6 +57,11 @@ def get_train_options():
     parser.add_argument('--save_epoch_freq', type=int, default=5, help='frequency of saving checkpoints at the end of epochs')
     parser.add_argument('--continue_train', action='store_true', help='continue training: load the latest model')
     parser.add_argument('--epoch_count', type=int, default=1, help='the starting epoch count, we save the model by <epoch_count>, <epoch_count>+<save_latest_freq>, ...')
+
+    # Optuna settings
+    parser.add_argument('--optuna_trials', type=int, default=50, help='number of optuna trials')
+    parser.add_argument('--n_epochs_optuna', type=int, default=10, help='number of epochs per trial for optuna')
+    parser.add_argument('--n_blocks_g', type=int, default=0, help='number of residual blocks for generator. 0 means use default (9 or 6 depending on net_g).')
     
     return parser.parse_args()
 

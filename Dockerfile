@@ -34,6 +34,6 @@ RUN pip install torch==2.5.1 torchvision==0.20.1 torchaudio==2.5.1 \
     --index-url https://download.pytorch.org/whl/cu121
 
 # Install additional dependent libraries
-RUN pip install numpy scipy pillow matplotlib tqdm facenet-pytorch tensorboard pandas pyarrow
+RUN pip install numpy scipy pillow matplotlib tqdm facenet-pytorch tensorboard pandas pyarrow optuna optuna-dashboard
 
 WORKDIR /workspace
