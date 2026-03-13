@@ -28,8 +28,8 @@ def main():
     
     # Load Weights
     # For testing we only really need generators, but CycleGANModel loads generators automatically
-    # We will try loading "latest" by default, or you can specify epoch using --epoch_count if implemented
-    model.load_networks('latest')
+    # We will try loading "latest" by default, or you can specify epoch using --load_epoch
+    model.load_networks(opt.load_epoch)
     
     if opt.eval:
         model.netG_A.eval()
@@ -64,27 +64,16 @@ def main():
         with torch.no_grad():
             model.forward()
                 
-        # Determine which tensors represent A and B based on the current direction flag
-        if opt.direction == 'AtoB':
-            img_A = model.real_A
-            fake_B = model.fake_B
-            rec_A = model.rec_A
-            path_A = data['A_paths'][0]
-            
-            img_B = model.real_B
-            fake_A = model.fake_A
-            rec_B = model.rec_B
-            path_B = data['B_paths'][0]
-        else: # BtoA
-            img_A = model.real_B
-            fake_B = model.fake_A
-            rec_A = model.rec_B
-            path_A = data['A_paths'][0]
-            
-            img_B = model.real_A
-            fake_A = model.fake_B
-            rec_B = model.rec_A
-            path_B = data['B_paths'][0]
+        # Fixed domain concepts: A is always real (Input A), B is always anime (Input B)
+        img_A = model.real_A
+        fake_B = model.fake_B
+        rec_A = model.rec_A
+        path_A = data['A_paths'][0]
+        
+        img_B = model.real_B
+        fake_A = model.fake_A
+        rec_B = model.rec_B
+        path_B = data['B_paths'][0]
             
         name_A, ext_A = os.path.splitext(os.path.basename(path_A))
         name_B, ext_B = os.path.splitext(os.path.basename(path_B))

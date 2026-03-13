@@ -36,13 +36,13 @@ def get_train_options():
     parser = get_base_options()
     
     parser.add_argument('--phase', type=str, default='train', help='train, val, test, etc')
-    parser.add_argument('--lambda_A', type=float, default=10.0, help='weight for cycle loss (A -> B -> A)')
-    parser.add_argument('--lambda_B', type=float, default=10.0, help='weight for cycle loss (B -> A -> B)')
-    parser.add_argument('--lambda_identity', type=float, default=0.5, help='use identity mapping. Setting lambda_identity other than 0 has an effect of scaling the weight of the identity mapping loss. For example, if the weight of the identity loss should be 10 times smaller than the weight of the reconstruction loss, please set lambda_identity = 0.1')
-    parser.add_argument('--lambda_perceptual', type=float, default=0.5, help='weight for VGG-based perceptual loss on A->B->A cycle (e.g. 0.1 to activate)')
+    parser.add_argument('--lambda_A', type=float, default=1.0799212606222341, help='weight for cycle loss (A -> B -> A)')
+    parser.add_argument('--lambda_B', type=float, default=1.2469857627945307, help='weight for cycle loss (B -> A -> B)')
+    parser.add_argument('--lambda_identity', type=float, default=0.6379324493473413, help='use identity mapping. Setting lambda_identity other than 0 has an effect of scaling the weight of the identity mapping loss. For example, if the weight of the identity loss should be 10 times smaller than the weight of the reconstruction loss, please set lambda_identity = 0.1')
+    parser.add_argument('--lambda_perceptual', type=float, default=0.136434909888208, help='weight for VGG-based perceptual loss on A->B->A cycle (e.g. 0.1 to activate)')
     parser.add_argument('--lambda_arcface', type=float, default=0.0, help='weight for InceptionResnetV1-based facial identity loss on A->B->A cycle (e.g. 0.1 to activate)')
     
-    parser.add_argument('--lr', type=float, default=0.0002, help='initial learning rate for adam')
+    parser.add_argument('--lr', type=float, default=0.0007754155910645506, help='initial learning rate for adam')
     parser.add_argument('--beta1', type=float, default=0.5, help='momentum term of adam')
     parser.add_argument('--n_epochs', type=int, default=100, help='number of epochs with the initial learning rate')
     parser.add_argument('--n_epochs_decay', type=int, default=100, help='number of epochs to linearly decay learning rate to zero')
@@ -73,6 +73,7 @@ def get_test_options():
     parser.add_argument('--results_dir', type=str, default='./results/', help='saves results here.')
     parser.add_argument('--num_test', type=int, default=50, help='how many test images to run')
     parser.add_argument('--model_suffix', type=str, default='', help='In checkpoints_dir, [epoch]_net_G[model_suffix].pth will be loaded as the generator.')
+    parser.add_argument('--load_epoch', type=str, default='latest', help='which epoch to load? set to latest to use latest cached model')
     # Dropout and Batchnorm
     parser.add_argument('--eval', action='store_true', help='use eval mode during test time.')
     parser.set_defaults(preprocess='none', serial_batches=True)

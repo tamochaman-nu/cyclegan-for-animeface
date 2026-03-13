@@ -83,10 +83,11 @@ docker compose run --rm train --dataroot ./datasets/<データセット名> --na
 学習済みモデルを使用して画像変換（推論）を行うには、以下のコマンドを実行します。
 
 ```bash
-docker compose run --rm inferance --dataroot ./datasets/<データセット名> --name <モデル名>
+docker compose run --rm inferance --dataroot ./datasets/<データセット名> --name <モデル名> --load_epoch <エポック数>
 ```
 
-- 推論結果の画像は `./results/<モデル名>/test_latest/index.html` にWebページ形式で出力されるため、ブラウザから簡単に結果を確認することができます。
+- `--load_epoch`: 読み込むチェックポイントのエポック番号を指定します（デフォルト: `latest`）。特定の学習進捗での結果を確認したい場合に使用します。
+- 推論結果の画像は `./results/<モデル名>/test_latest/index.html` にWebページ形式で出力されます。
 - **片方向のみの推論**を行う場合は、引数で方向を `--direction AtoB` または `--direction BtoA` として指定します。
 
 ```bash

@@ -235,10 +235,9 @@ class CycleGANModel(nn.Module):
             self.optimizers = [self.optimizer_G, self.optimizer_D]
             
     def set_input(self, input):
-        AtoB = self.opt.direction == 'AtoB'
-        self.real_A = input['A' if AtoB else 'B'].to(self.device)
-        self.real_B = input['B' if AtoB else 'A'].to(self.device)
-        self.image_paths = input['A_paths' if AtoB else 'B_paths']
+        self.real_A = input['A'].to(self.device)
+        self.real_B = input['B'].to(self.device)
+        self.image_paths = input['A_paths']
 
     def forward(self):
         self.fake_B = self.netG_A(self.real_A)   # G_A(A)
