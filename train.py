@@ -3,7 +3,12 @@ import os
 import torch
 import copy
 from torch.utils.data import DataLoader
-from torch.utils.tensorboard import SummaryWriter
+try:
+    from torch.utils.tensorboard import SummaryWriter
+    has_tensorboard = True
+except ImportError:
+    has_tensorboard = False
+    print("TensorBoard not found. Skipping TensorBoard logging.")
 
 from options import get_train_options
 from datasets import UnalignedDataset
@@ -45,9 +50,13 @@ def main():
         has_val = False
 
     # Tensorboard initialization
-    writer_train = SummaryWriter(log_dir=os.path.join(opt.tensorboard_dir, opt.name, 'train'))
-    if has_val:
-        writer_val = SummaryWriter(log_dir=os.path.join(opt.tensorboard_dir, opt.name, 'val'))
+    if has_tensorboard:
+        writer_train = SummaryWriter(log_dir=os.path.join(opt.tensorboard_dir, opt.name, 'train'))
+        if has_val:
+            writer_val = SummaryWriter(log_dir=os.path.join(opt.tensorboard_dir, opt.name, 'val'))
+    else:
+        writer_train = None
+        writer_val = None
 
     # Model definition
     model = CycleGANModel(opt)
@@ -131,6 +140,10 @@ def main():
             if opt.lambda_arcface > 0.0:
                 losses['Arc_A'] = model.loss_arcface_A.item()
                 losses['Arc_B'] = model.loss_arcface_B.item()
+            
+            # Texture fix losses
+            losses['Tex_VGG'] = model.loss_perceptual_texture.item()
+            losses['Tex_Gram'] = model.loss_gram.item()
                 
             for k, v in losses.items():
                 epoch_losses_sum[k] = epoch_losses_sum.get(k, 0.0) + v
@@ -152,7 +165,7 @@ def main():
             iter_data_time = time.time()
 
         # Log epoch average training losses to TensorBoard
-        if num_train_batches > 0:
+        if has_tensorboard and num_train_batches > 0:
             for k, v in epoch_losses_sum.items():
                 avg_v = v / num_train_batches
                 writer_train.add_scalar(f'Loss/{k}', avg_v, epoch)
@@ -179,7 +192,8 @@ def main():
                 print(f'[Validation Epoch {epoch}] ', end='')
                 for k, v in val_losses_sum.items():
                     avg_v = v / num_val_batches
-                    writer_val.add_scalar(f'Loss/{k}', avg_v, epoch)
+                    if has_tensorboard:
+                        writer_val.add_scalar(f'Loss/{k}', avg_v, epoch)
                     print(f'{k}: {avg_v:.3f} ', end='')
                 print()
 

@@ -38,7 +38,7 @@ def get_transform(opt, grayscale=False):
         transform_list.append(transforms.Lambda(lambda img: __scale_width(img, opt.load_size, Image.BICUBIC)))
 
     if 'crop' in opt.preprocess:
-        transform_list.append(transforms.RandomCrop(opt.crop_size))
+        transform_list.append(transforms.RandomCrop(128))
         
     # Handle specific Test-Time preprocessing
     if opt.preprocess == 'none':
@@ -46,6 +46,7 @@ def get_transform(opt, grayscale=False):
 
     if not opt.preprocess == 'none' and opt.phase == 'train':
         transform_list.append(transforms.RandomHorizontalFlip())
+        transform_list.append(transforms.RandomVerticalFlip())
 
     # ToTensor + Normalize
     transform_list += [transforms.ToTensor()]

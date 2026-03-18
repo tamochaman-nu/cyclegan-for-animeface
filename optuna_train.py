@@ -20,8 +20,10 @@ def objective(trial, base_opt):
     opt.lambda_B = trial.suggest_float('lambda_B', 1.0, 20.0, log=True)
     opt.lambda_identity = trial.suggest_float('lambda_identity', 0.1, 1.0)
     opt.lr = trial.suggest_float('lr', 1e-5, 1e-3, log=True)
-    opt.lambda_perceptual = trial.suggest_float('lambda_perceptual', 0.01, 1.0, log=True)
-    opt.n_blocks_g = trial.suggest_int('n_blocks_g', 3, 12, step=3)
+    opt.lambda_perceptual = trial.suggest_float('lambda_perceptual', 0.0, 0.0)
+    opt.lambda_perceptual_texture = trial.suggest_float('lambda_perceptual_texture', 0.1, 5.0, log=True)
+    opt.lambda_gram = trial.suggest_float('lambda_gram', 0.1, 5.0, log=True)
+    opt.n_blocks_g = trial.suggest_int('n_blocks_g', 9, 12, step=3)
     
     # Override settings for fast search
     opt.n_epochs = opt.n_epochs_optuna
@@ -36,7 +38,9 @@ def objective(trial, base_opt):
     writer_train = SummaryWriter(log_dir=os.path.join(tb_dir, 'train'))
     
     print(f"--- Starting Trial {trial.number} ---")
-    print(f"Hyperparameters: lambda_A={opt.lambda_A:.3f}, lambda_B={opt.lambda_B:.3f}, lambda_identity={opt.lambda_identity:.3f}, lambda_perceptual={opt.lambda_perceptual:.3f}, lr={opt.lr:.6f}, n_blocks_g={opt.n_blocks_g}")
+    print(f"Hyperparameters: lambda_A={opt.lambda_A:.3f}, lambda_B={opt.lambda_B:.3f}, lambda_identity={opt.lambda_identity:.3f}, "
+          f"lambda_perceptual={opt.lambda_perceptual:.3f}, lambda_perceptual_texture={opt.lambda_perceptual_texture:.3f}, lambda_gram={opt.lambda_gram:.3f}, "
+          f"lr={opt.lr:.6f}, n_blocks_g={opt.n_blocks_g}")
     
     # Dataset
     dataset = UnalignedDataset(opt)
@@ -130,6 +134,10 @@ def objective(trial, base_opt):
             for k, v in losses.items():
                 epoch_losses_sum[k] = epoch_losses_sum.get(k, 0.0) + v
             num_train_batches += 1
+            
+            # Texture fix losses
+            losses['Tex_VGG'] = model.loss_perceptual_texture.item()
+            losses['Tex_Gram'] = model.loss_gram.item()
             
             if i % 10 == 0:
                 pbar.set_postfix({

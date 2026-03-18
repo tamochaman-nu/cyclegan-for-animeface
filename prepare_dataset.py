@@ -91,18 +91,32 @@ def create_symlinks(file_paths, target_dir):
         dst = os.path.join(target_dir, os.path.basename(file_path))
         
         # In case there's a filename collision, append a random string
-        while os.path.exists(dst):
+        while os.path.exists(dst) and not os.path.islink(dst):
             name, ext = os.path.splitext(os.path.basename(file_path))
             dst = os.path.join(target_dir, f"{name}_{random.randint(1000, 9999)}{ext}")
             
+        if os.path.islink(dst):
+            os.unlink(dst)
+        elif os.path.exists(dst):
+             continue # If it's a real file that somehow has the same name, skip it
+
         os.symlink(src, dst)
 
 def load_domain_files(path):
     """Determines if a path holds parquet or image files, extracts them if parquet, and returns a list of paths."""
+    if not os.path.exists(path):
+        print(f"Warning: Path does not exist: {path}")
+        return []
+
     parquet_files = get_parquet_files(path)
     if parquet_files:
-        print(f"Detected Parquet files for {path}. Extracting to source directory 'raw' folder...")
-        return extract_parquet_images(parquet_files)
+        print(f"Detected {len(parquet_files)} Parquet files for {path}. Extracting to source directory 'raw' folder...")
+        extract_parquet_images(parquet_files)
+        # After extraction, we want to include both the newly extracted images and any original ones
+        # If the path was a parquet file itself, we look in its parent's 'raw' directory (handled by extract_parquet_images)
+        # But for consistency, we just search the base directory again for all images
+        base_dir = os.path.dirname(os.path.abspath(path)) if os.path.isfile(path) else path
+        return get_image_files(base_dir)
     else:
         return get_image_files(path)
 
@@ -127,8 +141,11 @@ def main():
     print(f"Found {len(files_A)} images in {args.dir_A}")
     print(f"Found {len(files_B)} images in {args.dir_B}")
     
-    if len(files_A) == 0 or len(files_B) == 0:
-        print("Error: One or both source directories contain no images. Exiting.")
+    if len(files_A) == 0:
+        print(f"Error: Domain A ({args.dir_A}) contain no images. Exiting.")
+        return
+    if len(files_B) == 0:
+        print(f"Error: Domain B ({args.dir_B}) contain no images. Exiting.")
         return
 
     # 2. Shuffle and balance dataset sizes based on max_images

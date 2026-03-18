@@ -63,6 +63,35 @@ class ArcFaceLoss(nn.Module):
         target = torch.ones(feat_x.size(0)).to(x.device)
         return self.criterion(feat_x, feat_y, target)
 
+import torch.nn.functional as F
+
+class VGGPerceptualLoss(nn.Module):
+    def __init__(self):
+        super().__init__()
+        vgg = models.vgg16(pretrained=True).features
+        # 浅い層のみ使用（深い層はセマンティック情報を含むため使わない）
+        self.slice1 = nn.Sequential(*list(vgg.children())[:4])   # conv1_2（エッジ）
+        self.slice2 = nn.Sequential(*list(vgg.children())[:9])   # conv2_2（色・塗り）
+        for param in self.parameters():
+            param.requires_grad = False
+
+    def forward(self, x, y):
+        loss = 0
+        loss += F.l1_loss(self.slice1(x), self.slice1(y)) * 1.0
+        loss += F.l1_loss(self.slice2(x), self.slice2(y)) * 0.5
+        return loss
+
+def gram_matrix(x):
+    b, c, h, w = x.size()
+    features = x.view(b, c, h * w)
+    G = torch.bmm(features, features.transpose(1, 2))
+    return G / (c * h * w)
+
+def gram_style_loss(x, y, vgg_slice):
+    fx = vgg_slice(x)
+    fy = vgg_slice(y)
+    return F.l1_loss(gram_matrix(fx), gram_matrix(fy))
+
 class ResidualBlock(nn.Module):
     def __init__(self, channels):
         super(ResidualBlock, self).__init__()
@@ -131,7 +160,7 @@ class ResNetGenerator(nn.Module):
         return self.model(x)
 
 class NLayerDiscriminator(nn.Module):
-    def __init__(self, input_nc, ndf=64, n_layers=3):
+    def __init__(self, input_nc, ndf=64, n_layers=1):
         super(NLayerDiscriminator, self).__init__()
         
         kw = 4
@@ -228,6 +257,11 @@ class CycleGANModel(nn.Module):
             if self.opt.lambda_arcface > 0.0:
                 self.criterionArcFace = ArcFaceLoss(self.device)
 
+            # Texture fix losses
+            self.vgg_perceptual_loss = VGGPerceptualLoss().to(self.device)
+            self.lambda_perceptual_texture = self.opt.lambda_perceptual_texture
+            self.lambda_gram = self.opt.lambda_gram
+
             # Optimizers
             self.optimizer_G = torch.optim.Adam(itertools.chain(self.netG_A.parameters(), self.netG_B.parameters()), lr=opt.lr, betas=(opt.beta1, 0.999))
             self.optimizer_D = torch.optim.Adam(itertools.chain(self.netD_A.parameters(), self.netD_B.parameters()), lr=opt.lr, betas=(opt.beta1, 0.999))
@@ -278,10 +312,10 @@ class CycleGANModel(nn.Module):
             self.loss_idt_B = 0
 
         # GAN loss D_A(G_A(A))
-        self.loss_G_A = self.criterionGAN(self.netD_A(self.fake_B), torch.ones_like(self.netD_A(self.fake_B)))
+        self.loss_G_A = self.criterionGAN(self.netD_A(self.fake_B), torch.ones_like(self.netD_A(self.fake_B))) * self.opt.lambda_adversarial
         
         # GAN loss D_B(G_B(B))
-        self.loss_G_B = self.criterionGAN(self.netD_B(self.fake_A), torch.ones_like(self.netD_B(self.fake_A)))
+        self.loss_G_B = self.criterionGAN(self.netD_B(self.fake_A), torch.ones_like(self.netD_B(self.fake_A))) * self.opt.lambda_adversarial
         
         # Forward cycle loss || G_B(G_A(A)) - A||
         self.loss_cycle_A = self.criterionCycle(self.rec_A, self.real_A) * lambda_A
@@ -302,8 +336,12 @@ class CycleGANModel(nn.Module):
             self.loss_arcface_A = self.criterionArcFace(self.rec_A, self.real_A) * self.opt.lambda_arcface
             self.loss_arcface_B = self.criterionArcFace(self.rec_B, self.real_B) * self.opt.lambda_arcface
 
+        # Texture fix losses (Task 3 & 4)
+        self.loss_perceptual_texture = self.vgg_perceptual_loss(self.fake_B, self.real_A) * self.lambda_perceptual_texture
+        self.loss_gram = gram_style_loss(self.fake_B, self.real_A, self.vgg_perceptual_loss.slice1) * self.lambda_gram
+
         # combined loss and calculate gradients
-        self.loss_G = self.loss_G_A + self.loss_G_B + self.loss_cycle_A + self.loss_cycle_B + self.loss_idt_A + self.loss_idt_B + self.loss_perceptual_A + self.loss_perceptual_B + self.loss_arcface_A + self.loss_arcface_B
+        self.loss_G = self.loss_G_A + self.loss_G_B + self.loss_cycle_A + self.loss_cycle_B + self.loss_idt_A + self.loss_idt_B + self.loss_perceptual_A + self.loss_perceptual_B + self.loss_arcface_A + self.loss_arcface_B + self.loss_perceptual_texture + self.loss_gram
         self.loss_G.backward()
 
     def compute_val_losses(self):
@@ -378,6 +416,10 @@ class CycleGANModel(nn.Module):
             if self.opt.lambda_arcface > 0.0:
                 losses['Arc_A'] = loss_arcface_A.item()
                 losses['Arc_B'] = loss_arcface_B.item()
+            
+            # Texture fix losses
+            losses['Tex_VGG'] = self.loss_perceptual_texture.item()
+            losses['Tex_Gram'] = self.loss_gram.item()
                 
             return losses
 
