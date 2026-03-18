@@ -16,9 +16,9 @@ def objective(trial, base_opt):
     opt = copy.deepcopy(base_opt)
     
     # Suggest hyperparameters
-    opt.lambda_A = trial.suggest_float('lambda_A', 1.0, 20.0, log=True)
-    opt.lambda_B = trial.suggest_float('lambda_B', 1.0, 20.0, log=True)
-    opt.lambda_identity = trial.suggest_float('lambda_identity', 0.1, 1.0)
+    opt.lambda_A = trial.suggest_float('lambda_A', 10.0, 20.0, log=True)
+    opt.lambda_B = trial.suggest_float('lambda_B', 10.0, 20.0, log=True)
+    opt.lambda_identity = trial.suggest_float('lambda_identity', 0.1, 5.0)
     opt.lr = trial.suggest_float('lr', 1e-5, 1e-3, log=True)
     opt.lambda_perceptual = trial.suggest_float('lambda_perceptual', 0.0, 0.0)
     opt.lambda_perceptual_texture = trial.suggest_float('lambda_perceptual_texture', 0.1, 5.0, log=True)
