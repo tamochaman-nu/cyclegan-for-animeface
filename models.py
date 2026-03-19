@@ -63,22 +63,44 @@ class ArcFaceLoss(nn.Module):
         target = torch.ones(feat_x.size(0)).to(x.device)
         return self.criterion(feat_x, feat_y, target)
 
+
+class TotalVariationLoss(nn.Module):
+    def __init__(self):
+        super(TotalVariationLoss, self).__init__()
+
+    def forward(self, x):
+        batch_size = x.size()[0]
+        h_x = x.size()[2]
+        w_x = x.size()[3]
+        count_h = self._tensor_size(x[:, :, 1:, :])
+        count_w = self._tensor_size(x[:, :, :, 1:])
+        h_tv = torch.pow((x[:, :, 1:, :] - x[:, :, :h_x - 1, :]), 2).sum()
+        w_tv = torch.pow((x[:, :, :, 1:] - x[:, :, :, :w_x - 1]), 2).sum()
+        return (h_tv / count_h + w_tv / count_w) / batch_size
+
+    def _tensor_size(self, t):
+        return t.size()[1] * t.size()[2] * t.size()[3]
+
+
 import torch.nn.functional as F
 
 class VGGPerceptualLoss(nn.Module):
     def __init__(self):
         super().__init__()
         vgg = models.vgg16(pretrained=True).features
-        # 浅い層のみ使用（深い層はセマンティック情報を含むため使わない）
-        self.slice1 = nn.Sequential(*list(vgg.children())[:4])   # conv1_2（エッジ）
-        self.slice2 = nn.Sequential(*list(vgg.children())[:9])   # conv2_2（色・塗り）
+        # conv1_2 (edge), conv2_2 (color/paint), conv3_3 (semantic/shape)
+        self.slice1 = nn.Sequential(*list(vgg.children())[:4])   
+        self.slice2 = nn.Sequential(*list(vgg.children())[:9])   
+        self.slice3 = nn.Sequential(*list(vgg.children())[:16])  
         for param in self.parameters():
             param.requires_grad = False
 
     def forward(self, x, y):
         loss = 0
-        loss += F.l1_loss(self.slice1(x), self.slice1(y)) * 1.0
-        loss += F.l1_loss(self.slice2(x), self.slice2(y)) * 0.5
+        # Weights adjusted to favor larger semantic structures over small edges
+        loss += F.l1_loss(self.slice1(x), self.slice1(y)) * 0.1  # reduced from 1.0 (edges)
+        loss += F.l1_loss(self.slice2(x), self.slice2(y)) * 0.5  # stay same (paint)
+        loss += F.l1_loss(self.slice3(x), self.slice3(y)) * 1.0  # added (shape/content)
         return loss
 
 def gram_matrix(x):
@@ -259,8 +281,10 @@ class CycleGANModel(nn.Module):
 
             # Texture fix losses
             self.vgg_perceptual_loss = VGGPerceptualLoss().to(self.device)
+            self.criterionTV = TotalVariationLoss().to(self.device)
             self.lambda_perceptual_texture = self.opt.lambda_perceptual_texture
             self.lambda_gram = self.opt.lambda_gram
+            self.lambda_tv = self.opt.lambda_tv
 
             # Optimizers
             self.optimizer_G = torch.optim.Adam(itertools.chain(self.netG_A.parameters(), self.netG_B.parameters()), lr=opt.lr, betas=(opt.beta1, 0.999))
@@ -336,12 +360,12 @@ class CycleGANModel(nn.Module):
             self.loss_arcface_A = self.criterionArcFace(self.rec_A, self.real_A) * self.opt.lambda_arcface
             self.loss_arcface_B = self.criterionArcFace(self.rec_B, self.real_B) * self.opt.lambda_arcface
 
-        # Texture fix losses (Task 3 & 4)
+        # Texture fix losses (Task 3 & 4 & smoothing)
         self.loss_perceptual_texture = self.vgg_perceptual_loss(self.fake_B, self.real_A) * self.lambda_perceptual_texture
         self.loss_gram = gram_style_loss(self.fake_B, self.real_A, self.vgg_perceptual_loss.slice1) * self.lambda_gram
+        self.loss_TV = self.criterionTV(self.fake_B) * self.lambda_tv
 
-        # combined loss and calculate gradients
-        self.loss_G = self.loss_G_A + self.loss_G_B + self.loss_cycle_A + self.loss_cycle_B + self.loss_idt_A + self.loss_idt_B + self.loss_perceptual_A + self.loss_perceptual_B + self.loss_arcface_A + self.loss_arcface_B + self.loss_perceptual_texture + self.loss_gram
+        self.loss_G = self.loss_G_A + self.loss_G_B + self.loss_cycle_A + self.loss_cycle_B + self.loss_idt_A + self.loss_idt_B + self.loss_perceptual_A + self.loss_perceptual_B + self.loss_arcface_A + self.loss_arcface_B + self.loss_perceptual_texture + self.loss_gram + self.loss_TV
         self.loss_G.backward()
 
     def compute_val_losses(self):
@@ -417,9 +441,14 @@ class CycleGANModel(nn.Module):
                 losses['Arc_A'] = loss_arcface_A.item()
                 losses['Arc_B'] = loss_arcface_B.item()
             
-            # Texture fix losses
-            losses['Tex_VGG'] = self.loss_perceptual_texture.item()
-            losses['Tex_Gram'] = self.loss_gram.item()
+            # Texture fix losses (Smoothing & Texture)
+            loss_perceptual_texture = self.vgg_perceptual_loss(self.fake_B, self.real_A) * self.lambda_perceptual_texture
+            loss_gram = gram_style_loss(self.fake_B, self.real_A, self.vgg_perceptual_loss.slice1) * self.lambda_gram
+            loss_TV = self.criterionTV(self.fake_B) * self.lambda_tv
+
+            losses['Tex_VGG'] = loss_perceptual_texture.item()
+            losses['Tex_Gram'] = loss_gram.item()
+            losses['TV'] = loss_TV.item()
                 
             return losses
 

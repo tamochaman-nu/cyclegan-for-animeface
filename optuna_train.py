@@ -141,6 +141,7 @@ def objective(trial, base_opt):
             # Texture fix losses
             losses['Tex_VGG'] = model.loss_perceptual_texture.item()
             losses['Tex_Gram'] = model.loss_gram.item()
+            losses['TV'] = model.loss_TV.item()
             
             if i % 10 == 0:
                 pbar.set_postfix({

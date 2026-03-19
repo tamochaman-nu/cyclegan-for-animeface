@@ -147,6 +147,7 @@ def main():
             # Texture fix losses
             losses['Tex_VGG'] = model.loss_perceptual_texture.item()
             losses['Tex_Gram'] = model.loss_gram.item()
+            losses['TV'] = model.loss_TV.item()
                 
             for k, v in losses.items():
                 epoch_losses_sum[k] = epoch_losses_sum.get(k, 0.0) + v

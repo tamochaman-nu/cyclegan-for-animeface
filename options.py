@@ -44,11 +44,12 @@ def get_train_options():
     parser.add_argument('--lambda_perceptual_texture', type=float, default=1, help='weight for shallow VGG-based perceptual loss for texture (e.g. 1.0)')
     parser.add_argument('--lambda_gram', type=float, default=5, help='weight for Gram matrix style loss (e.g. 0.5)')
     parser.add_argument('--lambda_arcface', type=float, default=0.0, help='weight for InceptionResnetV1-based facial identity loss on A->B->A cycle (e.g. 0.1 to activate)')
+    parser.add_argument('--lambda_tv', type=float, default=1e-4, help='weight for total variation loss (for smoothing, e.g. 1e-4)')
     
     parser.add_argument('--lr', type=float, default=4.2932888850284785e-05, help='initial learning rate for adam')
     parser.add_argument('--beta1', type=float, default=0.5, help='momentum term of adam')
-    parser.add_argument('--n_epochs', type=int, default=100, help='number of epochs with the initial learning rate (total epochs = n_epochs + n_epochs_decay)')
-    parser.add_argument('--n_epochs_decay', type=int, default=100, help='number of epochs to linearly decay learning rate to zero (total epochs = n_epochs + n_epochs_decay)')
+    parser.add_argument('--n_epochs', type=int, default=200, help='number of epochs with the initial learning rate (total epochs = n_epochs + n_epochs_decay)')
+    parser.add_argument('--n_epochs_decay', type=int, default=200, help='number of epochs to linearly decay learning rate to zero (total epochs = n_epochs + n_epochs_decay)')
     parser.add_argument('--pool_size', type=int, default=50, help='the size of image buffer that stores previously generated images')
     parser.add_argument('--lr_policy', type=str, default='linear', help='learning rate policy. [linear | step | plateau | cosine]')
 
