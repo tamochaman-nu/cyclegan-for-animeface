@@ -79,6 +79,9 @@ def objective(trial, base_opt):
 
     best_val_loss = float('inf')
     
+    total_epochs = opt.n_epochs + opt.n_epochs_decay
+    print(f'Trial {trial.number}: Total epochs: {total_epochs} (Steady: {opt.n_epochs}, Decay: {opt.n_epochs_decay})')
+    
     for epoch in range(opt.epoch_count, opt.n_epochs + opt.n_epochs_decay + 1):
         epoch_losses_sum = {}
         num_train_batches = 0

@@ -30,6 +30,9 @@ def main():
     dataset_size = len(dataset)
     print(f'The number of training images = {dataset_size}')
 
+    total_epochs = opt.n_epochs + opt.n_epochs_decay
+    print(f'Total epochs: {total_epochs} (Steady phase: {opt.n_epochs}, Decay phase: {opt.n_epochs_decay})')
+
     # Validation Dataset
     val_opt = copy.deepcopy(opt)
     val_opt.phase = 'val' # using test or val folder
