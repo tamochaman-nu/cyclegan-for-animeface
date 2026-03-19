@@ -23,7 +23,7 @@ def objective(trial, base_opt):
     opt.lambda_perceptual = trial.suggest_float('lambda_perceptual', 0.0, 0.0)
     opt.lambda_perceptual_texture = trial.suggest_float('lambda_perceptual_texture', 0.1, 5.0, log=True)
     opt.lambda_gram = trial.suggest_float('lambda_gram', 0.1, 5.0, log=True)
-    opt.n_blocks_g = trial.suggest_int('n_blocks_g', 9, 12, step=3)
+    opt.n_blocks_g = trial.suggest_int('n_blocks_g', 9, 9, step=3)
     
     # Override settings for fast search
     opt.n_epochs = opt.n_epochs_optuna
