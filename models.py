@@ -360,12 +360,27 @@ class CycleGANModel(nn.Module):
             self.loss_arcface_A = self.criterionArcFace(self.rec_A, self.real_A) * self.opt.lambda_arcface
             self.loss_arcface_B = self.criterionArcFace(self.rec_B, self.real_B) * self.opt.lambda_arcface
 
-        # Texture fix losses (Task 3 & 4 & smoothing)
-        self.loss_perceptual_texture = self.vgg_perceptual_loss(self.fake_B, self.real_A) * self.lambda_perceptual_texture
-        self.loss_gram = gram_style_loss(self.fake_B, self.real_A, self.vgg_perceptual_loss.slice1) * self.lambda_gram
-        self.loss_TV = self.criterionTV(self.fake_B) * self.lambda_tv
+        # Texture fix and Smoothing losses (Split A/B)
+        # Texture/Style: Same domain comparison (Rec vs Real)
+        self.loss_perceptual_texture_A = self.vgg_perceptual_loss(self.rec_A, self.real_A) * self.lambda_perceptual_texture
+        self.loss_perceptual_texture_B = self.vgg_perceptual_loss(self.rec_B, self.real_B) * self.lambda_perceptual_texture
+        
+        self.loss_gram_A = gram_style_loss(self.rec_A, self.real_A, self.vgg_perceptual_loss.slice1) * self.lambda_gram
+        self.loss_gram_B = gram_style_loss(self.rec_B, self.real_B, self.vgg_perceptual_loss.slice1) * self.lambda_gram
+        
+        # Smoothing: On the generated outputs (Fake)
+        self.loss_TV_A = self.criterionTV(self.fake_B) * self.lambda_tv
+        self.loss_TV_B = self.criterionTV(self.fake_A) * self.lambda_tv
 
-        self.loss_G = self.loss_G_A + self.loss_G_B + self.loss_cycle_A + self.loss_cycle_B + self.loss_idt_A + self.loss_idt_B + self.loss_perceptual_A + self.loss_perceptual_B + self.loss_arcface_A + self.loss_arcface_B + self.loss_perceptual_texture + self.loss_gram + self.loss_TV
+        # combined loss and calculate gradients
+        self.loss_G = (self.loss_G_A + self.loss_G_B + 
+                       self.loss_cycle_A + self.loss_cycle_B + 
+                       self.loss_idt_A + self.loss_idt_B + 
+                       self.loss_perceptual_A + self.loss_perceptual_B + 
+                       self.loss_arcface_A + self.loss_arcface_B + 
+                       self.loss_perceptual_texture_A + self.loss_perceptual_texture_B + 
+                       self.loss_gram_A + self.loss_gram_B + 
+                       self.loss_TV_A + self.loss_TV_B)
         self.loss_G.backward()
 
     def compute_val_losses(self):
@@ -441,14 +456,24 @@ class CycleGANModel(nn.Module):
                 losses['Arc_A'] = loss_arcface_A.item()
                 losses['Arc_B'] = loss_arcface_B.item()
             
-            # Texture fix losses (Smoothing & Texture)
-            loss_perceptual_texture = self.vgg_perceptual_loss(self.fake_B, self.real_A) * self.lambda_perceptual_texture
-            loss_gram = gram_style_loss(self.fake_B, self.real_A, self.vgg_perceptual_loss.slice1) * self.lambda_gram
-            loss_TV = self.criterionTV(self.fake_B) * self.lambda_tv
+            # Texture fix and Smoothing losses (Split A/B)
+            # Texture/Style: Same domain comparison (Rec vs Real)
+            loss_perceptual_texture_A = self.vgg_perceptual_loss(self.rec_A, self.real_A) * self.lambda_perceptual_texture
+            loss_perceptual_texture_B = self.vgg_perceptual_loss(self.rec_B, self.real_B) * self.lambda_perceptual_texture
+            
+            loss_gram_A = gram_style_loss(self.rec_A, self.real_A, self.vgg_perceptual_loss.slice1) * self.lambda_gram
+            loss_gram_B = gram_style_loss(self.rec_B, self.real_B, self.vgg_perceptual_loss.slice1) * self.lambda_gram
+            
+            # Smoothing: On the generated outputs (Fake)
+            loss_TV_A = self.criterionTV(self.fake_B) * self.lambda_tv
+            loss_TV_B = self.criterionTV(self.fake_A) * self.lambda_tv
 
-            losses['Tex_VGG'] = loss_perceptual_texture.item()
-            losses['Tex_Gram'] = loss_gram.item()
-            losses['TV'] = loss_TV.item()
+            losses['Tex_VGG_A'] = loss_perceptual_texture_A.item()
+            losses['Tex_VGG_B'] = loss_perceptual_texture_B.item()
+            losses['Tex_Gram_A'] = loss_gram_A.item()
+            losses['Tex_Gram_B'] = loss_gram_B.item()
+            losses['TV_A'] = loss_TV_A.item()
+            losses['TV_B'] = loss_TV_B.item()
                 
             return losses
 

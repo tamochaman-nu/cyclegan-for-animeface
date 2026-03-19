@@ -144,10 +144,13 @@ def main():
                 losses['Arc_A'] = model.loss_arcface_A.item()
                 losses['Arc_B'] = model.loss_arcface_B.item()
             
-            # Texture fix losses
-            losses['Tex_VGG'] = model.loss_perceptual_texture.item()
-            losses['Tex_Gram'] = model.loss_gram.item()
-            losses['TV'] = model.loss_TV.item()
+            # Texture fix and Smoothing losses
+            losses['Tex_VGG_A'] = model.loss_perceptual_texture_A.item()
+            losses['Tex_VGG_B'] = model.loss_perceptual_texture_B.item()
+            losses['Tex_Gram_A'] = model.loss_gram_A.item()
+            losses['Tex_Gram_B'] = model.loss_gram_B.item()
+            losses['TV_A'] = model.loss_TV_A.item()
+            losses['TV_B'] = model.loss_TV_B.item()
                 
             for k, v in losses.items():
                 epoch_losses_sum[k] = epoch_losses_sum.get(k, 0.0) + v

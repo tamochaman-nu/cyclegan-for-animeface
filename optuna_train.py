@@ -138,10 +138,13 @@ def objective(trial, base_opt):
                 epoch_losses_sum[k] = epoch_losses_sum.get(k, 0.0) + v
             num_train_batches += 1
             
-            # Texture fix losses
-            losses['Tex_VGG'] = model.loss_perceptual_texture.item()
-            losses['Tex_Gram'] = model.loss_gram.item()
-            losses['TV'] = model.loss_TV.item()
+            # Texture fix and Smoothing losses
+            losses['Tex_VGG_A'] = model.loss_perceptual_texture_A.item()
+            losses['Tex_VGG_B'] = model.loss_perceptual_texture_B.item()
+            losses['Tex_Gram_A'] = model.loss_gram_A.item()
+            losses['Tex_Gram_B'] = model.loss_gram_B.item()
+            losses['TV_A'] = model.loss_TV_A.item()
+            losses['TV_B'] = model.loss_TV_B.item()
             
             if i % 10 == 0:
                 pbar.set_postfix({
