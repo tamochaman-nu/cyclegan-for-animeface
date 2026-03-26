@@ -60,8 +60,8 @@ python3 prepare_dataset.py --dir_A /path/to/domain_A_images --dir_B /path/to/dom
 docker compose run --rm train --dataroot ./datasets/<データセット名> --name <モデル名>
 ```
 
-- `--dataroot`: データセットが格納されているディレクトリのパスを指定します。
 - `--name`: 学習するモデルの名前（プロジェクトにおける実験名）を指定します。学習経過やチェックポイントはこの名前で `./checkpoints/<モデル名>` セクション等に保存されます。
+- **ハイパーパラメータの記録**: チェックポイント保存時に、その学習で使用された全てのオプション（損失の係数など）が `checkpoints/<モデル名>/loss_options.json` として自動的に保存されます。
 
 **エポック数の指定について**:
 CycleGANでは、全エポック数は `--n_epochs` (学習率一定期間) と `--n_epochs_decay` (学習率減衰期間) の合計になります。

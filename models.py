@@ -1,4 +1,5 @@
 import os
+import json
 import torch
 import torch.nn as nn
 import itertools
@@ -496,6 +497,12 @@ class CycleGANModel(nn.Module):
     def save_networks(self, epoch):
         save_dir = os.path.join(self.opt.checkpoints_dir, self.opt.name)
         os.makedirs(save_dir, exist_ok=True)
+        
+        # Save hyperparameters as JSON
+        opt_dict = vars(self.opt)
+        with open(os.path.join(save_dir, 'loss_options.json'), 'w') as f:
+            json.dump(opt_dict, f, indent=4)
+            
         torch.save(self.netG_A.state_dict(), os.path.join(save_dir, f'{epoch}_net_G_A.pth'))
         torch.save(self.netG_B.state_dict(), os.path.join(save_dir, f'{epoch}_net_G_B.pth'))
         if self.isTrain:
